@@ -20,7 +20,7 @@ Once you run it you can check the policy on the bucket and will also return the 
       ID: "IntelligentTierRule",
       Status: "Enabled",
       Transitions: [{
-          Days: 32,
+          Days: 1,
           StorageClass: "INTELLIGENT_TIERING"
         }]
     }]
