@@ -8,4 +8,4 @@ Working with legacy s3 buckets with large amounts of data can be tedious, In ord
 You can run this one time, but recomended to use as a lambda that runs ones a month in each aws account. It will apply the policy after one day and begin the Intelligent tiering process to save money on s3 storage based on accesability.
 
 ## Docs
-(Intelligent Tiering)[https://aws.amazon.com/s3/storage-classes/intelligent-tiering/]
+[Intelligent Tiering](https://aws.amazon.com/s3/storage-classes/intelligent-tiering/)
