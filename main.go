@@ -1,14 +1,14 @@
 package main
 
 import (
-	"fmt"
-
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
+	log "github.com/sirupsen/logrus"
 )
 
+// get all the buckets in the account
 func listBuckets(client *s3.S3) (*s3.ListBucketsOutput, error) {
 	res, err := client.ListBuckets(nil)
 	if err != nil {
@@ -18,6 +18,7 @@ func listBuckets(client *s3.S3) (*s3.ListBucketsOutput, error) {
 	return res, nil
 }
 
+// if the policy doesn't exist apply it
 func getPolicy(client *s3.S3, bucket string) {
 
 	input := &s3.GetBucketLifecycleConfigurationInput{
@@ -29,21 +30,21 @@ func getPolicy(client *s3.S3, bucket string) {
 		if aerr, ok := err.(awserr.Error); ok {
 			switch aerr.Message() {
 			default:
-				fmt.Println(aerr.Error())
-				fmt.Println(aerr.Message())
+				log.Errorln(aerr.Error())
+				log.Errorln(aerr.Message())
 			case "The lifecycle configuration does not exist":
-				fmt.Printf("policy not found for %v, applying policy \n", bucket)
+				log.Infof("policy not found for %v, applying policy \n", bucket)
 				putPolicy(client, bucket)
 			}
 		} else {
-			fmt.Println(err.Error())
+			log.Errorln(err.Error())
 		}
-		return
 	}
 
-	fmt.Println(result)
+	log.Infoln(result)
 }
 
+// policy applied if lifecycle not found on the bucket
 func putPolicy(client *s3.S3, bucket string) *s3.PutBucketLifecycleConfigurationOutput {
 
 	// after 30 days move objects to intelligent tiering
@@ -73,15 +74,78 @@ func putPolicy(client *s3.S3, bucket string) *s3.PutBucketLifecycleConfiguration
 		if aerr, ok := err.(awserr.Error); ok {
 			switch aerr.Code() {
 			default:
-				fmt.Println(aerr.Error())
+				log.Errorln(aerr.Error())
 			}
 		} else {
-			fmt.Println(err.Error())
+			log.Errorln(err.Error())
+		}
+	}
+
+	log.Infof("policy applied to %v \n", bucket)
+	putTieringPolicy(client, bucket)
+	return result
+}
+
+// after intelligent tiering applied apply the archive policy
+func putTieringPolicy(client *s3.S3, bucket string) *s3.PutBucketIntelligentTieringConfigurationOutput {
+
+	apiObject := &s3.IntelligentTieringConfiguration{
+		Id:     aws.String("DeepArchive365"),
+		Status: aws.String("Enabled"),
+		Tierings: []*s3.Tiering{
+			{
+				AccessTier: aws.String("DEEP_ARCHIVE_ACCESS"),
+				Days:       aws.Int64(365),
+			},
+		},
+	}
+	input := &s3.PutBucketIntelligentTieringConfigurationInput{
+		Bucket:                          aws.String(bucket),
+		Id:                              aws.String("DeepArchive365"),
+		IntelligentTieringConfiguration: apiObject,
+	}
+
+	result, err := client.PutBucketIntelligentTieringConfiguration(input)
+	if err != nil {
+		if aerr, ok := err.(awserr.Error); ok {
+			switch aerr.Code() {
+			default:
+				log.Errorln(aerr.Error())
+			}
+		} else {
+			log.Errorln(err.Error())
 		}
 		return result
 	}
 
-	fmt.Printf("policy applied to %v \n", bucket)
+	log.Infof("policy applied to %v \n", bucket)
+	getTieringPolicy(client, bucket)
+	return result
+}
+
+// return fresh policy applied to the bucket
+func getTieringPolicy(client *s3.S3, bucket string) *s3.GetBucketIntelligentTieringConfigurationOutput {
+
+	input := &s3.GetBucketIntelligentTieringConfigurationInput{
+		Bucket: aws.String(bucket),
+		Id:     aws.String("DeepArchive365"),
+	}
+
+	result, err := client.GetBucketIntelligentTieringConfiguration(input)
+	if err != nil {
+		if aerr, ok := err.(awserr.Error); ok {
+			switch aerr.Message() {
+			default:
+				log.Errorln(aerr.Error())
+				log.Errorln(aerr.Message())
+			}
+		} else {
+			log.Errorln(err.Error())
+		}
+	}
+
+	log.Infof("Policy found for %v \n", bucket)
+	log.Infoln(result.IntelligentTieringConfiguration)
 	return result
 }
 
@@ -95,12 +159,12 @@ func main() {
 
 	buckets, err := listBuckets(s3Client)
 	if err != nil {
-		fmt.Printf("Couldn't list buckets: %v", err)
+		log.Errorf("Couldn't list buckets: %v", err)
 		return
 	}
 
 	for _, bucket := range buckets.Buckets {
-		fmt.Printf("Found bucket: %s \n", *bucket.Name)
+		log.Infof("Found bucket: %s \n", *bucket.Name)
 		getPolicy(s3Client, *bucket.Name)
 	}
 
