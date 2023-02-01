@@ -5,11 +5,12 @@ import (
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
+	"github.com/aws/aws-sdk-go/service/s3/s3iface"
 	log "github.com/sirupsen/logrus"
 )
 
 // get all the buckets in the account
-func listBuckets(client *s3.S3) (*s3.ListBucketsOutput, error) {
+func listAllBuckets(client s3iface.S3API) (*s3.ListBucketsOutput, error) {
 	res, err := client.ListBuckets(nil)
 	if err != nil {
 		return nil, err
@@ -19,7 +20,7 @@ func listBuckets(client *s3.S3) (*s3.ListBucketsOutput, error) {
 }
 
 // if the policy doesn't exist apply it
-func getPolicy(client *s3.S3, bucket string) {
+func getPolicy(client s3iface.S3API, bucket string) *s3.GetBucketLifecycleConfigurationOutput {
 
 	input := &s3.GetBucketLifecycleConfigurationInput{
 		Bucket: aws.String(bucket),
@@ -42,10 +43,11 @@ func getPolicy(client *s3.S3, bucket string) {
 	}
 
 	log.Infoln(result)
+	return result
 }
 
 // policy applied if lifecycle not found on the bucket
-func putPolicy(client *s3.S3, bucket string) *s3.PutBucketLifecycleConfigurationOutput {
+func putPolicy(client s3iface.S3API, bucket string) *s3.PutBucketLifecycleConfigurationOutput {
 
 	// after 30 days move objects to intelligent tiering
 	input := &s3.PutBucketLifecycleConfigurationInput{
@@ -81,13 +83,13 @@ func putPolicy(client *s3.S3, bucket string) *s3.PutBucketLifecycleConfiguration
 		}
 	}
 
-	log.Infof("policy applied to %v \n", bucket)
+	log.Infof("Intelligent Tiering applied to %v \n", bucket)
 	putTieringPolicy(client, bucket)
 	return result
 }
 
 // after intelligent tiering applied apply the archive policy
-func putTieringPolicy(client *s3.S3, bucket string) *s3.PutBucketIntelligentTieringConfigurationOutput {
+func putTieringPolicy(client s3iface.S3API, bucket string) *s3.PutBucketIntelligentTieringConfigurationOutput {
 
 	apiObject := &s3.IntelligentTieringConfiguration{
 		Id:     aws.String("DeepArchive365"),
@@ -118,13 +120,13 @@ func putTieringPolicy(client *s3.S3, bucket string) *s3.PutBucketIntelligentTier
 		return result
 	}
 
-	log.Infof("policy applied to %v \n", bucket)
+	log.Infof("Deep Archive policy applied to %v \n", bucket)
 	getTieringPolicy(client, bucket)
 	return result
 }
 
 // return fresh policy applied to the bucket
-func getTieringPolicy(client *s3.S3, bucket string) *s3.GetBucketIntelligentTieringConfigurationOutput {
+func getTieringPolicy(client s3iface.S3API, bucket string) *s3.GetBucketIntelligentTieringConfigurationOutput {
 
 	input := &s3.GetBucketIntelligentTieringConfigurationInput{
 		Bucket: aws.String(bucket),
