@@ -159,7 +159,7 @@ func main() {
 	})
 	s3Client := s3.New(sess)
 
-	buckets, err := listBuckets(s3Client)
+	buckets, err := listAllBuckets(s3Client)
 	if err != nil {
 		log.Errorf("Couldn't list buckets: %v", err)
 		return
