@@ -16,20 +16,16 @@ You can run this one time, but recomended to use as a lambda that runs ones a mo
 ## Reponse syntax
 Once you run it you can check the policy on the bucket and will also return the policy applied in the logs.
 
-![example bucket](example/policy.png)
+![example bucket](assets/policy.png)
 
 ```
-{
-  Rules: [{
-      Filter: {
-        Prefix: ""
-      },
-      ID: "IntelligentTierRule",
-      Status: "Enabled",
-      Transitions: [{
-          Days: 1,
-          StorageClass: "INTELLIGENT_TIERING"
-        }]
+INFO[0001] Intelligent Tiering applied to s3bucket_name
+INFO[0001] {
+  Id: "DeepArchive365",
+  Status: "Enabled",
+  Tierings: [{
+      AccessTier: "DEEP_ARCHIVE_ACCESS",
+      Days: 365
     }]
 }
 ```
