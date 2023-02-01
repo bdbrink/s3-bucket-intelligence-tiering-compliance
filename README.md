@@ -32,3 +32,7 @@ INFO[0001] {
 
 ## Docs
 [Intelligent Tiering](https://aws.amazon.com/s3/storage-classes/intelligent-tiering/)
+
+### Testing
+
+run `go test -v` in the main directory to generate test results
