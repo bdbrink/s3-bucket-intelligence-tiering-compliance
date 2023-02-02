@@ -153,10 +153,8 @@ func getTieringPolicy(client s3iface.S3API, bucket string) *s3.GetBucketIntellig
 
 func main() {
 
-	// default to west for now
-	sess, err := session.NewSession(&aws.Config{
-		Region: aws.String("us-west-2"),
-	})
+	// load local credentials
+	sess, err := session.NewSession()
 	s3Client := s3.New(sess)
 
 	buckets, err := listAllBuckets(s3Client)
